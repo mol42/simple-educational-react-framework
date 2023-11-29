@@ -1,8 +1,6 @@
 import App from "./App.js";
-import { renderRoot } from "./react.js";
-
-const renderTree = App();
+import { renderRoot } from "./react.js";;
 
 console.log(JSON.stringify(renderTree));
 
-// renderRoot(renderTree, document.getElementById("main_container"))
+// renderRoot(() => App(), document.getElementById("main_container"))

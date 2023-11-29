@@ -1,78 +1,163 @@
 <html>
   <head>
     <style>
-        .padding-20 {
-            padding: 20px;
-        }
+      .padding-20 {
+        padding: 20px;
+      }
     </style>
   </head>
   <body>
     <div id="main_container"></div>
     <script>
-        function createElement(typeOrFunction, props, children) {
-          let renderTree = {
-            type: typeOrFunction,
-            props: props,
-            children: null
-          };
-  
-          if (typeof typeOrFunction === "function") {
-            renderTree.children = typeOrFunction(props, children);
-          } else {
-            renderTree.children = children;
+      const ReactInnerContext = {
+        elementId: 0,
+        activeId: null,
+        stateMap: {},
+        renderTreeCreator: null,
+        processedRenderTree: null,
+        reactRootTreeElement: null,
+        targetElement: null
+      };
+
+      function requestStateUpdateFor(elementId) {
+        renderRoot(ReactInnerContext.renderTreeCreator, ReactInnerContext.targetElement, true);
+      }
+
+      function useState(initialState) {
+        const activeElementId = ReactInnerContext.activeId;
+
+        if (typeof ReactInnerContext.stateMap[activeElementId] === "undefined") {
+          ReactInnerContext.stateMap[activeElementId] = initialState;
+        }
+
+        const stateUpdater = function(newState) {
+          ReactInnerContext.stateMap[activeElementId] = newState;
+          setTimeout(function() {
+            // TODO: Find a better id resolution..
+            requestStateUpdateFor(activeElementId);
+          }, 50);
+        }
+
+        return [ReactInnerContext.stateMap[activeElementId], stateUpdater];
+      }
+
+      function createElement(typeOrFunction, props, children) {
+        let renderTree = {
+          $$id: `element-${ReactInnerContext.elementId++}`,
+          type: typeOrFunction,
+          props: props,
+          children: null,
+          $$nativeElement: null // will be filled later
+        };
+
+        if (typeof typeOrFunction === "function") {
+          ReactInnerContext.activeId = renderTree.$$id;
+          renderTree.children = typeOrFunction(props, children);
+        } else {
+          renderTree.children = children;
+        }
+
+        return renderTree;
+      }
+
+      function removeAllChildNodes(parent) {
+        while (parent.firstChild) {
+          parent.removeChild(parent.firstChild);
+        }
+      }
+
+      function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot) {
+        // this is 
+        ReactInnerContext.activeId = -1;
+        ReactInnerContext.elementId = 0;
+
+        const processedRenderTree = renderTreeCreator();
+
+        const reactRootTreeElement = document.createDocumentFragment();
+
+        renderNode(processedRenderTree, reactRootTreeElement);
+
+        if (replacePreviousRoot) {
+          removeAllChildNodes(targetElement);
+        }
+
+        targetElement.appendChild(reactRootTreeElement);
+
+        ReactInnerContext.reactRootTreeElement = reactRootTreeElement;
+        ReactInnerContext.renderTreeCreator = renderTreeCreator;
+        ReactInnerContext.processedRenderTree = processedRenderTree;
+        ReactInnerContext.targetElement = targetElement;
+      }
+
+      // simple tree traversal
+      function renderNode(node, parentElement) {
+        if (node === null || node === undefined) {
+          return;
+        }
+
+        if (typeof node.type !== "function") {
+          const activeNode = document.createElement(node.type);
+          activeNode.className = node?.props?.className;
+
+          if (node.props?.__innerHTML) {
+            activeNode.innerHTML = node.props?.__innerHTML;
           }
-  
-          return renderTree;
-        }
-  
-        function renderRoot(renderTree, targetElement) {
-          const rootElement = document.createDocumentFragment();
-  
-          renderNode(renderTree, rootElement);
-  
-          targetElement.appendChild(rootElement);
-        }
-  
-        function renderNode(node, parentElement) {
-          if (node === null || node === undefined) {
-            return;
+
+          node.$$nativeElement = activeNode;
+
+          if (node.props?.events) {
+            Object.keys(node.props?.events).forEach((key) => {
+              activeNode.addEventListener(key, function (evt) {
+                node.props?.events[key]?.(evt);
+              });
+            });
           }
-  
-          if (typeof node.type !== "function") {
-            const activeNode = document.createElement(node.type);
-            activeNode.className = node?.props?.className;
-  
-            if (node.props?.__innerHTML) {
-              activeNode.innerHTML = node.props?.__innerHTML;
-            }
-  
-            parentElement.appendChild(activeNode);
-  
-            renderNode(node.children, activeNode);
-          } else {
-            renderNode(node.children, parentElement);
-          }
+
+          parentElement.appendChild(activeNode);
+
+          renderNode(node.children, activeNode);
+        } else {
+          renderNode(node.children, parentElement);
         }
-  
-        function Greeting({ name }) {
-          return createElement("h1", { className: "greeting" }, createElement("span", { __innerHTML: `Hello ${name}` }));
-        }
-  
-        // import { createElement } from './react.js';
-        // import Greeting from './Greeting.js';
-  
-        function App() {
-          return createElement("div", { className: "padding-20" }, createElement(Greeting, { name: "Taylor" }));
-        }
-  
-        // import App from "./App.js";
-        // import { renderRoot } from "./react.js";
-  
-        const renderTree = App();
-  
-        console.log(JSON.stringify(renderTree));
-  
-        renderRoot(renderTree, document.getElementById("main_container"));
-      </script>
+      }
+
+      /// ----- Greeting.js
+      function Greeting({ name }) {
+        const [enabled, setEnabled] = useState(false);
+        console.log("enabled", enabled);
+        return createElement(
+          "h1",
+          { className: "greeting" },
+          createElement(
+            "button",
+            {
+              className: "btn-primary",
+              events: {
+                click: (evt) => {
+                  setEnabled(true);
+                  console.log("onclick");
+                }
+              }
+            },
+            createElement("span", { __innerHTML: enabled ? `How are you ${name}?` : `Hello ${name}` })
+          )
+        );
+      }
+
+      /// ---- App.js
+      function App() {
+        return createElement("div", { className: "padding-20" }, createElement(Greeting, { name: "Taylor" }));
+      }
+
+      /// ------ index.js
+      // import App from "./App.js";
+      // import { renderRoot } from "./react.js";
+
+      const renderTreeCreator = () => App();
+
+      console.log(JSON.stringify(renderTreeCreator()));
+
+      renderRoot(renderTreeCreator, document.getElementById("main_container"));
+    </script>
   </body>
 </html>
