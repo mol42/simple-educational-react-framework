@@ -1,6 +1,6 @@
 import { createElement, useState } from "./simple-react.js";
 
-function Greeting({ name }) {
+function SimplePagedView({ name }) {
   const [enabled, setEnabled] = useState(false);
   const [showDate, setShowDate] = useState(true);
 
@@ -81,4 +81,4 @@ function Greeting({ name }) {
   return createElement("h1", { className: "padding-20" }, preparedElement);
 }
 
-export default Greeting;
+export default SimplePagedView;

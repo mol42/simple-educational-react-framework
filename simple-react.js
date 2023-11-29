@@ -9,35 +9,51 @@ const ReactInnerContext = {
   targetElement: null
 };
 
-function requestStateUpdateFor(elementId) {
+function requestReRender(elementId) {
   renderRoot(ReactInnerContext.renderTreeCreator, ReactInnerContext.targetElement, true);
+}
+
+function createOrGetMap(map, activeElementId, defaultValue) {
+  const resultArray = [];
+
+  if (typeof map[activeElementId] === "undefined") {
+    map[activeElementId] = {};
+    resultArray.push(false);
+  } else {
+    resultArray.push(true);
+  }
+
+  resultArray.push(map[activeElementId]);
+
+  return resultArray;
 }
 
 export function useState(initialState) {
   const activeElementId = ReactInnerContext.activeId;
-  // if a second cook is used we need to be able to separate them
-  if (!ReactInnerContext.hookIdMap[activeElementId]) {
-    ReactInnerContext.hookIdMap[activeElementId] = 0;
-  }
-  const activeHookId = ReactInnerContext.hookIdMap[activeElementId]++;
+  const [hookIdMapAlreadyCreated, activeHookIdMap] = createOrGetMap(ReactInnerContext.hookIdMap, activeElementId);
+  const [activeStateMapAlreadyCreated, activeStateMap] = createOrGetMap(ReactInnerContext.stateMap, activeElementId);
 
-  if (typeof ReactInnerContext.stateMap[activeElementId] === "undefined") {
-    ReactInnerContext.stateMap[activeElementId] = {};
-    ReactInnerContext.stateMap[activeElementId][activeHookId] = initialState;
+  if (!hookIdMapAlreadyCreated) {
+    activeHookIdMap[activeElementId] = 0;
+  }
+  const activeHookId = activeHookIdMap[activeElementId]++;
+
+  if (!activeStateMapAlreadyCreated) {
+    activeStateMap[activeHookId] = initialState;
   } else {
-    if (typeof ReactInnerContext.stateMap[activeElementId][activeHookId] === "undefined") {
-      ReactInnerContext.stateMap[activeElementId][activeHookId] = initialState;
+    if (typeof activeStateMap[activeHookId] === "undefined") {
+      activeStateMap[activeHookId] = initialState;
     }
   }
 
   const stateUpdater = function (newState) {
-    ReactInnerContext.stateMap[activeElementId][activeHookId] = newState;
+    activeStateMap[activeHookId] = newState;
     setTimeout(function () {
-      requestStateUpdateFor(activeElementId);
+      requestReRender(activeElementId);
     }, 50);
   };
 
-  return [ReactInnerContext.stateMap[activeElementId][activeHookId], stateUpdater];
+  return [activeStateMap[activeHookId], stateUpdater];
 }
 
 export function createElement(typeOrFunction, props, children) {
