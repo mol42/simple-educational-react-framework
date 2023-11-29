@@ -2,6 +2,7 @@ const ReactInnerContext = {
   elementId: 0,
   activeId: null,
   stateMap: {},
+  hookIdMap: {},
   renderTreeCreator: null,
   processedRenderTree: null,
   reactRootTreeElement: null,
@@ -14,19 +15,25 @@ function requestStateUpdateFor(elementId) {
 
 export function useState(initialState) {
   const activeElementId = ReactInnerContext.activeId;
+  // if a second cook is used we need to be able to separate them
+  if (!ReactInnerContext.hookIdMap[activeElementId]) {
+    ReactInnerContext.hookIdMap[activeElementId] = 0;
+  }
+  const activeHookId = ReactInnerContext.hookIdMap[activeElementId]++;
 
   if (typeof ReactInnerContext.stateMap[activeElementId] === "undefined") {
-    ReactInnerContext.stateMap[activeElementId] = initialState;
+    ReactInnerContext.stateMap[activeElementId] = {};
+    ReactInnerContext.stateMap[activeElementId][activeHookId] = initialState;
   }
 
   const stateUpdater = function (newState) {
-    ReactInnerContext.stateMap[activeElementId] = newState;
+    ReactInnerContext.stateMap[activeElementId][activeHookId] = newState;
     setTimeout(function () {
       requestStateUpdateFor(activeElementId);
     }, 50);
   };
 
-  return [ReactInnerContext.stateMap[activeElementId], stateUpdater];
+  return [ ReactInnerContext.stateMap[activeElementId][activeHookId], stateUpdater];
 }
 
 export function createElement(typeOrFunction, props, children) {
@@ -58,6 +65,7 @@ export function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot
   //
   ReactInnerContext.activeId = -1;
   ReactInnerContext.elementId = 0;
+  ReactInnerContext.hookIdMap = {};
 
   const processedRenderTree = renderTreeCreator();
 
@@ -75,6 +83,22 @@ export function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot
   ReactInnerContext.renderTreeCreator = renderTreeCreator;
   ReactInnerContext.processedRenderTree = processedRenderTree;
   ReactInnerContext.targetElement = targetElement;
+}
+
+function findAndInvokeEventListener(elementId, eventKey, evt) {
+  const renderTree = ReactInnerContext.processedRenderTree;
+
+  traverseAndFindElementByInnerId(renderTree, elementId, eventKey, evt);
+}
+
+function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) {
+  if (elementNode.$$elementId === elementId) {
+    elementNode.props?.events[eventKey]?.(evt);
+  } else {
+    if (elementNode.children) {
+      traverseAndFindElementByInnerId(elementNode.children, elementId, eventKey, evt);
+    }
+  }
 }
 
 // simple tree traversal
@@ -96,7 +120,8 @@ function renderNode(node, parentElement) {
     if (node.props?.events) {
       Object.keys(node.props?.events).forEach((key) => {
         activeNode.addEventListener(key, function (evt) {
-          node.props?.events[key]?.(evt);
+          // node.props?.events[key]?.(evt);
+          findAndInvokeEventListener(node.$$elementId, key, evt);
         });
       });
     }

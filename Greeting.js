@@ -1,11 +1,28 @@
-import { createElement, useState } from "./react.js";
+import { createElement, useState } from "./simple-react.js";
 
 function Greeting({ name }) {
   const [enabled, setEnabled] = useState(false);
+  const [showDate, setShowDate] = useState(false);
+
   console.log("enabled", enabled);
 
   if (enabled) {
-    return createElement("div", { className : "padding-20", __innerHTML : "Content removed"});
+    return createElement("div", { className: "padding-20", __innerHTML: "Content removed" });
+  }
+
+  let preparedElement = null;
+  if (showDate) {
+    preparedElement = createElement(
+      "div",
+      {},
+      createElement(
+        "div",
+        { __innerHTML: `Do you want to re-render ${name}?` },
+        createElement("div", { __innerHTML: `${new Date().getTime()}` })
+      )
+    );
+  } else {
+    preparedElement = createElement("span", { __innerHTML: `Do you want to re-render ${name}?` });
   }
 
   return createElement(
@@ -17,12 +34,13 @@ function Greeting({ name }) {
         className: "btn-primary",
         events: {
           click: (evt) => {
-            setEnabled(true);
+            // setEnabled(true);
+            setShowDate(true);
             console.log("onclick");
           }
         }
       },
-      createElement("span", { __innerHTML: `Do you want to re-render ${name}?`})
+      preparedElement
     )
   );
 }

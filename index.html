@@ -13,6 +13,7 @@
         elementId: 0,
         activeId: null,
         stateMap: {},
+        hookIdMap: {},
         renderTreeCreator: null,
         processedRenderTree: null,
         reactRootTreeElement: null,
@@ -25,20 +26,25 @@
 
       function useState(initialState) {
         const activeElementId = ReactInnerContext.activeId;
+        // if a second cook is used we need to be able to separate them
+        if (!ReactInnerContext.hookIdMap[activeElementId]) {
+          ReactInnerContext.hookIdMap[activeElementId] = 0;
+        }
+        const activeHookId = ReactInnerContext.hookIdMap[activeElementId]++;
 
         if (typeof ReactInnerContext.stateMap[activeElementId] === "undefined") {
-          ReactInnerContext.stateMap[activeElementId] = initialState;
+          ReactInnerContext.stateMap[activeElementId] = {};
+          ReactInnerContext.stateMap[activeElementId][activeHookId] = initialState;
         }
 
         const stateUpdater = function (newState) {
-          ReactInnerContext.stateMap[activeElementId] = newState;
+          ReactInnerContext.stateMap[activeElementId][activeHookId] = newState;
           setTimeout(function () {
-            // TODO: Find a better id resolution..
             requestStateUpdateFor(activeElementId);
           }, 50);
         };
 
-        return [ReactInnerContext.stateMap[activeElementId], stateUpdater];
+        return [ReactInnerContext.stateMap[activeElementId][activeHookId], stateUpdater];
       }
 
       function createElement(typeOrFunction, props, children) {
@@ -67,9 +73,10 @@
       }
 
       function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot) {
-        // this is
+        //
         ReactInnerContext.activeId = -1;
         ReactInnerContext.elementId = 0;
+        ReactInnerContext.hookIdMap = {};
 
         const processedRenderTree = renderTreeCreator();
 
@@ -87,6 +94,22 @@
         ReactInnerContext.renderTreeCreator = renderTreeCreator;
         ReactInnerContext.processedRenderTree = processedRenderTree;
         ReactInnerContext.targetElement = targetElement;
+      }
+
+      function findAndInvokeEventListener(elementId, eventKey, evt) {
+        const renderTree = ReactInnerContext.processedRenderTree;
+
+        traverseAndFindElementByInnerId(renderTree, elementId, eventKey, evt);
+      }
+
+      function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) {
+        if (elementNode.$$id === elementId) {
+          elementNode.props?.events[eventKey]?.(evt);
+        } else {
+          if (elementNode.children) {
+            traverseAndFindElementByInnerId(elementNode.children, elementId, eventKey, evt);
+          }
+        }
       }
 
       // simple tree traversal
@@ -108,7 +131,7 @@
           if (node.props?.events) {
             Object.keys(node.props?.events).forEach((key) => {
               activeNode.addEventListener(key, function (evt) {
-                node.props?.events[key]?.(evt);
+                findAndInvokeEventListener(node.$$id, key, evt);
               });
             });
           }
@@ -124,10 +147,27 @@
       /// ----- Greeting.js
       function Greeting({ name }) {
         const [enabled, setEnabled] = useState(false);
+        const [showDate, setShowDate] = useState(false);
+
         console.log("enabled", enabled);
 
         if (enabled) {
           return createElement("div", { className: "padding-20", __innerHTML: "Content removed" });
+        }
+
+        let preparedElement = null;
+        if (showDate) {
+          preparedElement = createElement(
+            "div",
+            {},
+            createElement(
+              "div",
+              { __innerHTML: `Do you want to re-render ${name}?` },
+              createElement("div", { __innerHTML: `${new Date().getTime()}` })
+            )
+          );
+        } else {
+          preparedElement = createElement("span", { __innerHTML: `Do you want to re-render ${name}?` });
         }
 
         return createElement(
@@ -139,19 +179,24 @@
               className: "btn-primary",
               events: {
                 click: (evt) => {
-                  setEnabled(true);
+                  // setEnabled(true);
+                  setShowDate(true);
                   console.log("onclick");
                 }
               }
             },
-            createElement("span", { __innerHTML: `Do you want to re-render ${name}?`})
+            preparedElement
           )
         );
       }
 
       /// ---- App.js
       function App() {
-        return createElement("div", { className: "padding-20", __innerHTML: "Root div" }, createElement(Greeting, { name: "Tayfun" }));
+        return createElement(
+          "div",
+          { className: "padding-20", __innerHTML: "Root div" },
+          createElement(Greeting, { name: "Tayfun" })
+        );
       }
 
       /// ------ index.js

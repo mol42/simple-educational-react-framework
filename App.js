@@ -1,4 +1,4 @@
-import { createElement } from "./react.js";
+import { createElement } from "./simple-react.js";
 import Greeting from "./Greeting.js";
 
 export default function App() {
