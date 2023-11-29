@@ -3,6 +3,11 @@ import { createElement, useState } from "./react.js";
 function Greeting({ name }) {
   const [enabled, setEnabled] = useState(false);
   console.log("enabled", enabled);
+
+  if (enabled) {
+    return createElement("div", { className : "padding-20", __innerHTML : "Content removed"});
+  }
+
   return createElement(
     "h1",
     { className: "greeting" },
@@ -17,7 +22,7 @@ function Greeting({ name }) {
           }
         }
       },
-      createElement("span", { __innerHTML: enabled ? `How are you ${name}?` : `Hello ${name}` })
+      createElement("span", { __innerHTML: `Do you want to re-render ${name}?`})
     )
   );
 }

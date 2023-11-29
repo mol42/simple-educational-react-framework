@@ -30,13 +30,13 @@
           ReactInnerContext.stateMap[activeElementId] = initialState;
         }
 
-        const stateUpdater = function(newState) {
+        const stateUpdater = function (newState) {
           ReactInnerContext.stateMap[activeElementId] = newState;
-          setTimeout(function() {
+          setTimeout(function () {
             // TODO: Find a better id resolution..
             requestStateUpdateFor(activeElementId);
           }, 50);
-        }
+        };
 
         return [ReactInnerContext.stateMap[activeElementId], stateUpdater];
       }
@@ -67,7 +67,7 @@
       }
 
       function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot) {
-        // this is 
+        // this is
         ReactInnerContext.activeId = -1;
         ReactInnerContext.elementId = 0;
 
@@ -125,6 +125,11 @@
       function Greeting({ name }) {
         const [enabled, setEnabled] = useState(false);
         console.log("enabled", enabled);
+
+        if (enabled) {
+          return createElement("div", { className: "padding-20", __innerHTML: "Content removed" });
+        }
+
         return createElement(
           "h1",
           { className: "greeting" },
@@ -139,14 +144,14 @@
                 }
               }
             },
-            createElement("span", { __innerHTML: enabled ? `How are you ${name}?` : `Hello ${name}` })
+            createElement("span", { __innerHTML: `Do you want to re-render ${name}?`})
           )
         );
       }
 
       /// ---- App.js
       function App() {
-        return createElement("div", { className: "padding-20" }, createElement(Greeting, { name: "Taylor" }));
+        return createElement("div", { className: "padding-20", __innerHTML: "Root div" }, createElement(Greeting, { name: "Tayfun" }));
       }
 
       /// ------ index.js
