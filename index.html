@@ -1,0 +1,78 @@
+<html>
+  <head>
+    <style>
+        .padding-20 {
+            padding: 20px;
+        }
+    </style>
+  </head>
+  <body>
+    <div id="main_container"></div>
+    <script>
+        function createElement(typeOrFunction, props, children) {
+          let renderTree = {
+            type: typeOrFunction,
+            props: props,
+            children: null
+          };
+  
+          if (typeof typeOrFunction === "function") {
+            renderTree.children = typeOrFunction(props, children);
+          } else {
+            renderTree.children = children;
+          }
+  
+          return renderTree;
+        }
+  
+        function renderRoot(renderTree, targetElement) {
+          const rootElement = document.createDocumentFragment();
+  
+          renderNode(renderTree, rootElement);
+  
+          targetElement.appendChild(rootElement);
+        }
+  
+        function renderNode(node, parentElement) {
+          if (node === null || node === undefined) {
+            return;
+          }
+  
+          if (typeof node.type !== "function") {
+            const activeNode = document.createElement(node.type);
+            activeNode.className = node?.props?.className;
+  
+            if (node.props?.__innerHTML) {
+              activeNode.innerHTML = node.props?.__innerHTML;
+            }
+  
+            parentElement.appendChild(activeNode);
+  
+            renderNode(node.children, activeNode);
+          } else {
+            renderNode(node.children, parentElement);
+          }
+        }
+  
+        function Greeting({ name }) {
+          return createElement("h1", { className: "greeting" }, createElement("span", { __innerHTML: `Hello ${name}` }));
+        }
+  
+        // import { createElement } from './react.js';
+        // import Greeting from './Greeting.js';
+  
+        function App() {
+          return createElement("div", { className: "padding-20" }, createElement(Greeting, { name: "Taylor" }));
+        }
+  
+        // import App from "./App.js";
+        // import { renderRoot } from "./react.js";
+  
+        const renderTree = App();
+  
+        console.log(JSON.stringify(renderTree));
+  
+        renderRoot(renderTree, document.getElementById("main_container"));
+      </script>
+  </body>
+</html>
