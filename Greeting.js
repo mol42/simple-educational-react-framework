@@ -22,7 +22,7 @@ function Greeting({ name }) {
           }
         },
         createElement("div", { __innerHTML: `Go to page 1 ?` })
-      ),
+      )
     ];
   }
 
@@ -30,6 +30,7 @@ function Greeting({ name }) {
   if (showDate) {
     preparedElement = [
       createElement("div", { __innerHTML: `Page 1` }),
+      createElement("div", { __innerHTML: `${name} time is: ${new Date().getTime()}` }),
       createElement(
         "button",
         {
@@ -41,9 +42,8 @@ function Greeting({ name }) {
             }
           }
         },
-        createElement("div", { __innerHTML: `Go to page 2 ${name}?` })
-      ),
-      createElement("div", { __innerHTML: `${new Date().getTime()}` })
+        createElement("div", { __innerHTML: `Go to page 2?` })
+      )
     ];
   } else {
     preparedElement = [
@@ -59,8 +59,9 @@ function Greeting({ name }) {
             }
           }
         },
-        createElement("div", { __innerHTML: `Revert back` })
+        createElement("div", { __innerHTML: `Go back` })
       ),
+      createElement("br", { className: "" }),
       createElement(
         "button",
         {
@@ -73,7 +74,7 @@ function Greeting({ name }) {
           }
         },
         createElement("div", { __innerHTML: `Go to page 3` })
-      ),
+      )
     ];
   }
 
