@@ -24,6 +24,10 @@ export function useState(initialState) {
   if (typeof ReactInnerContext.stateMap[activeElementId] === "undefined") {
     ReactInnerContext.stateMap[activeElementId] = {};
     ReactInnerContext.stateMap[activeElementId][activeHookId] = initialState;
+  } else {
+    if (typeof ReactInnerContext.stateMap[activeElementId][activeHookId] === "undefined") {
+      ReactInnerContext.stateMap[activeElementId][activeHookId] = initialState;
+    }
   }
 
   const stateUpdater = function (newState) {
@@ -33,7 +37,7 @@ export function useState(initialState) {
     }, 50);
   };
 
-  return [ ReactInnerContext.stateMap[activeElementId][activeHookId], stateUpdater];
+  return [ReactInnerContext.stateMap[activeElementId][activeHookId], stateUpdater];
 }
 
 export function createElement(typeOrFunction, props, children) {
@@ -68,7 +72,6 @@ export function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot
   ReactInnerContext.hookIdMap = {};
 
   const processedRenderTree = renderTreeCreator();
-
   const reactRootTreeElement = document.createDocumentFragment();
 
   renderNode(processedRenderTree, reactRootTreeElement);
@@ -92,11 +95,17 @@ function findAndInvokeEventListener(elementId, eventKey, evt) {
 }
 
 function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) {
-  if (elementNode.$$elementId === elementId) {
+  if (elementNode.$$id === elementId) {
     elementNode.props?.events[eventKey]?.(evt);
   } else {
     if (elementNode.children) {
-      traverseAndFindElementByInnerId(elementNode.children, elementId, eventKey, evt);
+      if (Array.isArray(elementNode.children)) {
+        elementNode.children.forEach(singleElement => {
+          traverseAndFindElementByInnerId(singleElement, elementId, eventKey, evt);
+        })
+      } else {
+        traverseAndFindElementByInnerId(elementNode.children, elementId, eventKey, evt);
+      }
     }
   }
 }
@@ -107,29 +116,36 @@ function renderNode(node, parentElement) {
     return;
   }
 
-  if (typeof node.type !== "function") {
-    const activeNode = document.createElement(node.type);
-    activeNode.className = node?.props?.className;
-
-    if (node.props?.__innerHTML) {
-      activeNode.innerHTML = node.props?.__innerHTML;
-    }
-
-    node.$$nativeElement = activeNode;
-
-    if (node.props?.events) {
-      Object.keys(node.props?.events).forEach((key) => {
-        activeNode.addEventListener(key, function (evt) {
-          // node.props?.events[key]?.(evt);
-          findAndInvokeEventListener(node.$$elementId, key, evt);
-        });
-      });
-    }
-
-    parentElement.appendChild(activeNode);
-
-    renderNode(node.children, activeNode);
+  if (Array.isArray(node)) {
+    node.forEach((singleNode) => {
+      renderSingleNode(singleNode, parentElement);
+    });
+  } else if (typeof node.type !== "function") {
+    renderSingleNode(node, parentElement);
   } else {
     renderNode(node.children, parentElement);
   }
+}
+
+function renderSingleNode(node, parentElement) {
+  const activeNode = document.createElement(node.type);
+  activeNode.className = node?.props?.className;
+
+  if (node.props?.__innerHTML) {
+    activeNode.innerHTML = node.props?.__innerHTML;
+  }
+
+  node.$$nativeElement = activeNode;
+
+  if (node.props?.events) {
+    Object.keys(node.props?.events).forEach((key) => {
+      activeNode.addEventListener(key, function (evt) {
+        findAndInvokeEventListener(node.$$id, key, evt);
+      });
+    });
+  }
+
+  parentElement.appendChild(activeNode);
+
+  renderNode(node.children, activeNode);
 }

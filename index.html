@@ -35,6 +35,10 @@
         if (typeof ReactInnerContext.stateMap[activeElementId] === "undefined") {
           ReactInnerContext.stateMap[activeElementId] = {};
           ReactInnerContext.stateMap[activeElementId][activeHookId] = initialState;
+        } else {
+          if (typeof ReactInnerContext.stateMap[activeElementId][activeHookId] === "undefined") {
+            ReactInnerContext.stateMap[activeElementId][activeHookId] = initialState;
+          }
         }
 
         const stateUpdater = function (newState) {
@@ -79,7 +83,6 @@
         ReactInnerContext.hookIdMap = {};
 
         const processedRenderTree = renderTreeCreator();
-
         const reactRootTreeElement = document.createDocumentFragment();
 
         renderNode(processedRenderTree, reactRootTreeElement);
@@ -107,7 +110,13 @@
           elementNode.props?.events[eventKey]?.(evt);
         } else {
           if (elementNode.children) {
-            traverseAndFindElementByInnerId(elementNode.children, elementId, eventKey, evt);
+            if (Array.isArray(elementNode.children)) {
+              elementNode.children.forEach((singleElement) => {
+                traverseAndFindElementByInnerId(singleElement, elementId, eventKey, evt);
+              });
+            } else {
+              traverseAndFindElementByInnerId(elementNode.children, elementId, eventKey, evt);
+            }
           }
         }
       }
@@ -118,36 +127,44 @@
           return;
         }
 
-        if (typeof node.type !== "function") {
-          const activeNode = document.createElement(node.type);
-          activeNode.className = node?.props?.className;
-
-          if (node.props?.__innerHTML) {
-            activeNode.innerHTML = node.props?.__innerHTML;
-          }
-
-          node.$$nativeElement = activeNode;
-
-          if (node.props?.events) {
-            Object.keys(node.props?.events).forEach((key) => {
-              activeNode.addEventListener(key, function (evt) {
-                findAndInvokeEventListener(node.$$id, key, evt);
-              });
-            });
-          }
-
-          parentElement.appendChild(activeNode);
-
-          renderNode(node.children, activeNode);
+        if (Array.isArray(node)) {
+          node.forEach((singleNode) => {
+            renderSingleNode(singleNode, parentElement);
+          });
+        } else if (typeof node.type !== "function") {
+          renderSingleNode(node, parentElement);
         } else {
           renderNode(node.children, parentElement);
         }
       }
 
+      function renderSingleNode(node, parentElement) {
+        const activeNode = document.createElement(node.type);
+        activeNode.className = node?.props?.className;
+
+        if (node.props?.__innerHTML) {
+          activeNode.innerHTML = node.props?.__innerHTML;
+        }
+
+        node.$$nativeElement = activeNode;
+
+        if (node.props?.events) {
+          Object.keys(node.props?.events).forEach((key) => {
+            activeNode.addEventListener(key, function (evt) {
+              findAndInvokeEventListener(node.$$id, key, evt);
+            });
+          });
+        }
+
+        parentElement.appendChild(activeNode);
+
+        renderNode(node.children, activeNode);
+      }
+
       /// ----- Greeting.js
       function Greeting({ name }) {
         const [enabled, setEnabled] = useState(false);
-        const [showDate, setShowDate] = useState(false);
+        const [showDate, setShowDate] = useState(true);
 
         console.log("enabled", enabled);
 
@@ -157,37 +174,28 @@
 
         let preparedElement = null;
         if (showDate) {
-          preparedElement = createElement(
-            "div",
-            {},
+          preparedElement = [
             createElement(
-              "div",
-              { __innerHTML: `Do you want to re-render ${name}?` },
-              createElement("div", { __innerHTML: `${new Date().getTime()}` })
-            )
-          );
+              "button",
+              {
+                className: "btn-primary",
+                events: {
+                  click: (evt) => {
+                    // setEnabled(true);
+                    setShowDate(false);
+                    console.log("onclick");
+                  }
+                }
+              },
+              createElement("div", { __innerHTML: `Do you want to toggle ${name}?` })
+            ),
+            createElement("div", { __innerHTML: `${new Date().getTime()}` })
+          ];
         } else {
           preparedElement = createElement("span", { __innerHTML: `Do you want to re-render ${name}?` });
         }
 
-        return createElement(
-          "h1",
-          { className: "greeting" },
-          createElement(
-            "button",
-            {
-              className: "btn-primary",
-              events: {
-                click: (evt) => {
-                  // setEnabled(true);
-                  setShowDate(true);
-                  console.log("onclick");
-                }
-              }
-            },
-            preparedElement
-          )
-        );
+        return createElement("h1", { className: "greeting" }, preparedElement);
       }
 
       /// ---- App.js

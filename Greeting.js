@@ -2,7 +2,7 @@ import { createElement, useState } from "./simple-react.js";
 
 function Greeting({ name }) {
   const [enabled, setEnabled] = useState(false);
-  const [showDate, setShowDate] = useState(false);
+  const [showDate, setShowDate] = useState(true);
 
   console.log("enabled", enabled);
 
@@ -12,37 +12,28 @@ function Greeting({ name }) {
 
   let preparedElement = null;
   if (showDate) {
-    preparedElement = createElement(
-      "div",
-      {},
+    preparedElement = [
       createElement(
-        "div",
-        { __innerHTML: `Do you want to re-render ${name}?` },
-        createElement("div", { __innerHTML: `${new Date().getTime()}` })
-      )
-    );
+        "button",
+        {
+          className: "btn-primary",
+          events: {
+            click: (evt) => {
+              // setEnabled(true);
+              setShowDate(true);
+              console.log("onclick");
+            }
+          }
+        },
+        createElement("div", { __innerHTML: `Do you want to toggle ${name}?` })
+      ),
+      createElement("div", { __innerHTML: `${new Date().getTime()}` })
+    ];
   } else {
     preparedElement = createElement("span", { __innerHTML: `Do you want to re-render ${name}?` });
   }
 
-  return createElement(
-    "h1",
-    { className: "greeting" },
-    createElement(
-      "button",
-      {
-        className: "btn-primary",
-        events: {
-          click: (evt) => {
-            // setEnabled(true);
-            setShowDate(true);
-            console.log("onclick");
-          }
-        }
-      },
-      preparedElement
-    )
-  );
+  return createElement("h1", { className: "greeting" }, preparedElement);
 }
 
 export default Greeting;
