@@ -1,4 +1,7 @@
 const ReactInnerContext = {
+  renderTree: null, // Virtual DOM like tree
+  renderTreeGenerator: null,
+  rootDOMElement: null,
   elementId: 0,
   activeId: null,
   requestReRender: null,
@@ -7,7 +10,8 @@ const ReactInnerContext = {
 };
 
 function requestReRender(elementId) {
-  ReactInnerContext.requestReRender(elementId);
+  const { renderTreeGenerator, rootDOMElement,  } = ReactInnerContext;
+  renderRoot(renderTreeGenerator, rootDOMElement, true);
 }
 
 function createOrGetMap(map, activeElementId) {
@@ -54,7 +58,7 @@ export function useState(initialState) {
 }
 
 export function createElement(typeOrFunction, props, children) {
-  let renderTree = {
+  let treeNode = {
     $$id: `element-${ReactInnerContext.elementId++}`,
     type: typeOrFunction,
     props: props,
@@ -63,21 +67,26 @@ export function createElement(typeOrFunction, props, children) {
   };
 
   if (typeof typeOrFunction === "function") {
-    ReactInnerContext.activeId = renderTree.$$id;
-    renderTree.children = typeOrFunction(props, children);
+    ReactInnerContext.activeId = treeNode.$$id;
+    treeNode.children = typeOrFunction(props, children);
   } else {
-    renderTree.children = children;
+    treeNode.children = children;
   }
 
-  return renderTree;
+  return treeNode;
 }
 
-export function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot) {
+export function renderRoot(renderTreeGenerator, rootDOMElement, replacePreviousRoot) {
   ReactInnerContext.activeId = -1;
   ReactInnerContext.elementId = 0;
   ReactInnerContext.hookIdMap = {};
 
-  ReactInnerContext.rootRenderer(renderTreeCreator, targetElement, replacePreviousRoot);
+  const processedRenderTree = renderTreeGenerator();
+
+  ReactInnerContext.renderTree = processedRenderTree;
+  ReactInnerContext.renderTreeGenerator = renderTreeGenerator;
+  ReactInnerContext.rootDOMElement = rootDOMElement;
+  ReactInnerContext.rootRenderer(processedRenderTree, rootDOMElement, replacePreviousRoot);
 }
 
 function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) {
@@ -96,14 +105,12 @@ function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) 
   }
 }
 
-export function __findTargetAndInvokeEventListener(elementId, eventKey, evt) {
-  const renderTree = ReactInnerContext.processedRenderTree;
-
+/**
+ * BELOW 3 METHODS ARE USED FOR GLOBAL PURPOSES
+ */
+export function __handleEvent(elementId, eventKey, evt) {
+  const { renderTree } = ReactInnerContext;
   traverseAndFindElementByInnerId(renderTree, elementId, eventKey, evt);
-}
-
-export function __registerReRenderer(requestReRender) {
-  ReactInnerContext.requestReRender = requestReRender;
 }
 
 export function __registerRootRenderer(rootRenderer) {

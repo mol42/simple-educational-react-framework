@@ -6,11 +6,11 @@ const ReactInnerContext = {
     renderTreeCreator: null,
     processedRenderTree: null,
     reactRootTreeElement: null,
-    targetElement: null
+    rootDOMElement: null
   };
   
   function requestReRender(elementId) {
-    renderRoot(ReactInnerContext.renderTreeCreator, ReactInnerContext.targetElement, true);
+    renderRoot(ReactInnerContext.renderTreeCreator, ReactInnerContext.rootDOMElement, true);
   }
   
   function createOrGetMap(map, activeElementId, defaultValue) {
@@ -57,7 +57,7 @@ const ReactInnerContext = {
   }
   
   export function createElement(typeOrFunction, props, children) {
-    let renderTree = {
+    let treeNode = {
       $$id: `element-${ReactInnerContext.elementId++}`,
       type: typeOrFunction,
       props: props,
@@ -66,13 +66,13 @@ const ReactInnerContext = {
     };
   
     if (typeof typeOrFunction === "function") {
-      ReactInnerContext.activeId = renderTree.$$id;
-      renderTree.children = typeOrFunction(props, children);
+      ReactInnerContext.activeId = treeNode.$$id;
+      treeNode.children = typeOrFunction(props, children);
     } else {
-      renderTree.children = children;
+      treeNode.children = children;
     }
   
-    return renderTree;
+    return treeNode;
   }
   
   function removeAllChildNodes(parent) {
@@ -81,7 +81,7 @@ const ReactInnerContext = {
     }
   }
   
-  export function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot) {
+  export function renderRoot(renderTreeCreator, rootDOMElement, replacePreviousRoot) {
     //
     ReactInnerContext.activeId = -1;
     ReactInnerContext.elementId = 0;
@@ -93,15 +93,15 @@ const ReactInnerContext = {
     renderNode(processedRenderTree, reactRootTreeElement);
   
     if (replacePreviousRoot) {
-      removeAllChildNodes(targetElement);
+      removeAllChildNodes(rootDOMElement);
     }
   
-    targetElement.appendChild(reactRootTreeElement);
+    rootDOMElement.appendChild(reactRootTreeElement);
   
     ReactInnerContext.reactRootTreeElement = reactRootTreeElement;
     ReactInnerContext.renderTreeCreator = renderTreeCreator;
     ReactInnerContext.processedRenderTree = processedRenderTree;
-    ReactInnerContext.targetElement = targetElement;
+    ReactInnerContext.rootDOMElement = rootDOMElement;
   }
   
   function findAndInvokeEventListener(elementId, eventKey, evt) {

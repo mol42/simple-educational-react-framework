@@ -1,10 +1,9 @@
-import { __registerReRenderer, __registerRootRenderer, __findTargetAndInvokeEventListener } from "./simple-react.js";
+import { __registerRootRenderer, __handleEvent } from "./simple-react.js";
 
 const ReactRenderContext = {
-  renderTreeCreator: null,
   processedRenderTree: null,
   reactRootTreeElement: null,
-  targetElement: null
+  rootDOMElement: null
 };
 
 function removeAllChildNodes(parent) {
@@ -13,22 +12,19 @@ function removeAllChildNodes(parent) {
   }
 }
 
-function doRenderRoot(renderTreeCreator, targetElement, replacePreviousRoot) {
-  const processedRenderTree = renderTreeCreator();
+function doRenderRoot(renderTree, rootDOMElement, replacePreviousRoot) {
   const reactRootTreeElement = document.createDocumentFragment();
 
-  renderNode(processedRenderTree, reactRootTreeElement);
+  renderNode(renderTree, reactRootTreeElement);
 
   if (replacePreviousRoot) {
-    removeAllChildNodes(targetElement);
+    removeAllChildNodes(rootDOMElement);
   }
 
-  targetElement.appendChild(reactRootTreeElement);
+  rootDOMElement.appendChild(reactRootTreeElement);
 
   ReactRenderContext.reactRootTreeElement = reactRootTreeElement;
-  ReactRenderContext.renderTreeCreator = renderTreeCreator;
-  ReactRenderContext.processedRenderTree = processedRenderTree;
-  ReactRenderContext.targetElement = targetElement;
+  ReactRenderContext.rootDOMElement = rootDOMElement;
 }
 
 // simple tree traversal
@@ -61,7 +57,7 @@ function renderSingleNode(node, parentElement) {
   if (node.props?.events) {
     Object.keys(node.props?.events).forEach((key) => {
       activeNode.addEventListener(key, function (evt) {
-        __findTargetAndInvokeEventListener(node.$$id, key, evt);
+        __handleEvent(node.$$id, key, evt);
       });
     });
   }
@@ -71,10 +67,4 @@ function renderSingleNode(node, parentElement) {
   renderNode(node.children, activeNode);
 }
 
-function doReRender(elementId) {
-  const { renderTreeCreator, targetElement } = ReactRenderContext;
-  doRenderRoot(renderTreeCreator, targetElement, true);
-}
-
 __registerRootRenderer(doRenderRoot);
-__registerReRenderer(doReRender);
