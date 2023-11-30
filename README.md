@@ -1,5 +1,5 @@
 # simple-educational-react-framework
-Simple Educational React Framework for web &amp; mobile
+Simple Educational React Framework
 
 This project is separated into 2 folders
 - **simple**: React-like framework in 1 source file
