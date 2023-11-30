@@ -106,7 +106,7 @@ function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) 
 }
 
 /**
- * BELOW 3 METHODS ARE USED FOR GLOBAL PURPOSES
+ * BELOW 2 METHODS ARE USED FOR GLOBAL PURPOSES
  */
 export function __handleEvent(elementId, eventKey, evt) {
   const { renderTree } = ReactInnerContext;
