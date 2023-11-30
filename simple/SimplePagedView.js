@@ -1,53 +1,31 @@
 import { createElement, useState } from "./simple-react.js";
 
 function SimplePagedView({ name }) {
-  const [enabled, setEnabled] = useState(false);
-  const [showDate, setShowDate] = useState(true);
+  const [activePage, setActivePage] = useState(0);
+  const [showDate, setShowDate] = useState(false);
 
-  console.log("enabled", enabled);
-  console.log("showDate", showDate);
-
-  if (enabled) {
-    return [
-      createElement("div", { className: "padding-20", __innerHTML: "Page 3" }),
+  if (activePage === 2) {
+    return createElement(
+      null, // Fragment node
+      null,
+      createElement("h1", {}, "Page 2"),
+      createElement(
+        "div",
+        { className: "padding-20" },
+        showDate ? `Hello ${name}, time is: ${new Date().getTime()}` : `Hello Tayfun`
+      ),
       createElement(
         "button",
         {
           className: "btn-primary",
           events: {
             click: (evt) => {
-              setEnabled(false);
-              console.log("onclick");
+              setActivePage(3);
             }
           }
         },
-        createElement("div", { __innerHTML: `Go to page 1 ?` })
-      )
-    ];
-  }
-
-  let preparedElement = null;
-  if (showDate) {
-    preparedElement = [
-      createElement("div", { __innerHTML: `Page 1` }),
-      createElement("div", { __innerHTML: `${name} time is: ${new Date().getTime()}` }),
-      createElement(
-        "button",
-        {
-          className: "btn-primary",
-          events: {
-            click: (evt) => {
-              setShowDate(false);
-              console.log("onclick");
-            }
-          }
-        },
-        createElement("div", { __innerHTML: `Go to page 2?` })
-      )
-    ];
-  } else {
-    preparedElement = [
-      createElement("div", { className: "", __innerHTML: "Page 2" }),
+        createElement("span", {}, `Go to page 3`)
+      ),
       createElement(
         "button",
         {
@@ -55,30 +33,56 @@ function SimplePagedView({ name }) {
           events: {
             click: (evt) => {
               setShowDate(true);
-              console.log("onclick");
             }
           }
         },
-        createElement("div", { __innerHTML: `Go back` })
+        createElement("span", {}, `Show Date`)
+      )
+    );
+  }
+
+  if (activePage === 3) {
+    return createElement(
+      null, // Fragment node
+      null,
+      createElement("h1", { className: "" }, "Page 3"),
+      createElement(
+        "div",
+        { className: "info-container" }, 
+        'This is informational content'
       ),
-      createElement("br", { className: "" }),
       createElement(
         "button",
         {
           className: "btn-primary",
           events: {
             click: (evt) => {
-              setEnabled(true);
-              console.log("onclick");
+              setActivePage(1);
             }
           }
         },
-        createElement("div", { __innerHTML: `Go to page 3` })
+        createElement("span", {}, `Go to page 1`)
       )
-    ];
+    );
   }
 
-  return createElement("h1", { className: "padding-20" }, preparedElement);
+  return createElement(
+    null, // Fragment node
+    null,
+    createElement("h1", { className: "" }, "Page 1"),
+    createElement(
+      "button",
+      {
+        className: "btn-primary",
+        events: {
+          click: (evt) => {
+            setActivePage(2);
+          }
+        }
+      },
+      createElement("span", {}, `Go to page 2`)
+    )
+  );
 }
 
 export default SimplePagedView;

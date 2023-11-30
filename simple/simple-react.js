@@ -56,20 +56,24 @@ const ReactInnerContext = {
     return [activeStateMap[activeHookId], stateUpdater];
   }
   
-  export function createElement(typeOrFunction, props, children) {
+  export function createElement(nodeTypeOrFunction, props, ...children) {
     let treeNode = {
       $$id: `element-${ReactInnerContext.elementId++}`,
-      type: typeOrFunction,
+      type: nodeTypeOrFunction,
       props: props,
       children: null,
       $$nativeElement: null // will be filled later
     };
   
-    if (typeof typeOrFunction === "function") {
+    if (typeof nodeTypeOrFunction === "function") {
       ReactInnerContext.activeId = treeNode.$$id;
-      treeNode.children = typeOrFunction(props, children);
+      treeNode.children = nodeTypeOrFunction(props, children);
     } else {
-      treeNode.children = children;
+      if (children != null && children.length === 1 && typeof children[0] === "string") {
+        props.__innerHTML = children[0];
+      } else {
+        treeNode.children = children;
+      }
     }
   
     return treeNode;
@@ -132,9 +136,15 @@ const ReactInnerContext = {
       return;
     }
   
-    if (Array.isArray(node)) {
+    if (node.type === null) { // we skip Fragment
+      renderNode(node.children, parentElement);
+    } else if (Array.isArray(node)) {
       node.forEach((singleNode) => {
-        renderSingleNode(singleNode, parentElement);
+        if (typeof singleNode.type !== "function") {
+          renderSingleNode(singleNode, parentElement);
+        } else {
+          renderNode(singleNode.children, parentElement);
+        }
       });
     } else if (typeof node.type !== "function") {
       renderSingleNode(node, parentElement);
