@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <style>
+      .padding-20 {
+        padding: 20px;
+      }
+
+      button {
+        margin: 5px;
+        padding: 10px;
+        font-size: 1.25rem;
+        border-radius: 5px;
+        background-color: #233876;
+        color: white;
+        border: 1px solid #dedede
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main_container"></div>
+    <script type="module">
+      import App from "./App.js";
+      import "./simple-react-dom.js";
+      import { renderRoot } from "./simple-react.js";
+
+      renderRoot(() => App(), document.getElementById("main_container"));
+    </script>
+  </body>
+</html>
