@@ -32,11 +32,15 @@ function SimplePagedView({ name }) {
           className: "btn-primary",
           events: {
             click: (evt) => {
-              setShowDate(true);
+              if (showDate) {
+                setShowDate(false);
+              } else {
+                setShowDate(true);
+              }
             }
           }
         },
-        createElement("span", {}, `Show Date`)
+        createElement("span", {}, showDate ? "Hide date" : "Show date")
       )
     );
   }
