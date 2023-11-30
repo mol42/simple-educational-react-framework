@@ -1,19 +1,16 @@
 const ReactInnerContext = {
   elementId: 0,
   activeId: null,
+  requestReRender: null,
   stateMap: {},
-  hookIdMap: {},
-  renderTreeCreator: null,
-  processedRenderTree: null,
-  reactRootTreeElement: null,
-  targetElement: null
+  hookIdMap: {}
 };
 
 function requestReRender(elementId) {
-  renderRoot(ReactInnerContext.renderTreeCreator, ReactInnerContext.targetElement, true);
+  ReactInnerContext.requestReRender(elementId);
 }
 
-function createOrGetMap(map, activeElementId, defaultValue) {
+function createOrGetMap(map, activeElementId) {
   const resultArray = [];
 
   if (typeof map[activeElementId] === "undefined") {
@@ -75,39 +72,12 @@ export function createElement(typeOrFunction, props, children) {
   return renderTree;
 }
 
-function removeAllChildNodes(parent) {
-  while (parent.firstChild) {
-    parent.removeChild(parent.firstChild);
-  }
-}
-
 export function renderRoot(renderTreeCreator, targetElement, replacePreviousRoot) {
-  //
   ReactInnerContext.activeId = -1;
   ReactInnerContext.elementId = 0;
   ReactInnerContext.hookIdMap = {};
 
-  const processedRenderTree = renderTreeCreator();
-  const reactRootTreeElement = document.createDocumentFragment();
-
-  renderNode(processedRenderTree, reactRootTreeElement);
-
-  if (replacePreviousRoot) {
-    removeAllChildNodes(targetElement);
-  }
-
-  targetElement.appendChild(reactRootTreeElement);
-
-  ReactInnerContext.reactRootTreeElement = reactRootTreeElement;
-  ReactInnerContext.renderTreeCreator = renderTreeCreator;
-  ReactInnerContext.processedRenderTree = processedRenderTree;
-  ReactInnerContext.targetElement = targetElement;
-}
-
-function findAndInvokeEventListener(elementId, eventKey, evt) {
-  const renderTree = ReactInnerContext.processedRenderTree;
-
-  traverseAndFindElementByInnerId(renderTree, elementId, eventKey, evt);
+  ReactInnerContext.rootRenderer(renderTreeCreator, targetElement, replacePreviousRoot);
 }
 
 function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) {
@@ -116,9 +86,9 @@ function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) 
   } else {
     if (elementNode.children) {
       if (Array.isArray(elementNode.children)) {
-        elementNode.children.forEach(singleElement => {
+        elementNode.children.forEach((singleElement) => {
           traverseAndFindElementByInnerId(singleElement, elementId, eventKey, evt);
-        })
+        });
       } else {
         traverseAndFindElementByInnerId(elementNode.children, elementId, eventKey, evt);
       }
@@ -126,42 +96,18 @@ function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) 
   }
 }
 
-// simple tree traversal
-function renderNode(node, parentElement) {
-  if (node === null || node === undefined) {
-    return;
-  }
+export function __findTargetAndInvokeEventListener(elementId, eventKey, evt) {
+  const renderTree = ReactInnerContext.processedRenderTree;
 
-  if (Array.isArray(node)) {
-    node.forEach((singleNode) => {
-      renderSingleNode(singleNode, parentElement);
-    });
-  } else if (typeof node.type !== "function") {
-    renderSingleNode(node, parentElement);
-  } else {
-    renderNode(node.children, parentElement);
-  }
+  traverseAndFindElementByInnerId(renderTree, elementId, eventKey, evt);
 }
 
-function renderSingleNode(node, parentElement) {
-  const activeNode = document.createElement(node.type);
-  activeNode.className = node?.props?.className;
-
-  if (node.props?.__innerHTML) {
-    activeNode.innerHTML = node.props?.__innerHTML;
-  }
-
-  node.$$nativeElement = activeNode;
-
-  if (node.props?.events) {
-    Object.keys(node.props?.events).forEach((key) => {
-      activeNode.addEventListener(key, function (evt) {
-        findAndInvokeEventListener(node.$$id, key, evt);
-      });
-    });
-  }
-
-  parentElement.appendChild(activeNode);
-
-  renderNode(node.children, activeNode);
+export function __registerReRenderer(requestReRender) {
+  ReactInnerContext.requestReRender = requestReRender;
 }
+
+export function __registerRootRenderer(rootRenderer) {
+  ReactInnerContext.rootRenderer = rootRenderer;
+}
+
+console.log("Modular React is initialized");
