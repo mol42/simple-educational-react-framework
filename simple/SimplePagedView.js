@@ -67,6 +67,14 @@ function SimplePagedView({ name }) {
     );
   }
 
+  /* JSX of the below code section
+      <>
+        <h1>Page 1</h1>
+        <button className="btn-primary" onClick={() => { setActivePage(2) }}>
+          <span>Go to page 2</span>
+        </button>
+      </>
+  */
   return createElement(
     Fragment, // Fragment node
     null,

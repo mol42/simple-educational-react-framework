@@ -89,17 +89,17 @@ export function renderRoot(renderTreeGenerator, rootDOMElement, replacePreviousR
   ReactInnerContext.rootRenderer(processedRenderTree, rootDOMElement, replacePreviousRoot);
 }
 
-function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) {
-  if (elementNode.$$id === elementId) {
-    elementNode.props?.events[eventKey]?.(evt);
+function findAndInvokeEventHandlerOfElement(elementNodeInRenderTree, elementId, eventKey, evt) {
+  if (elementNodeInRenderTree.$$id === elementId) {
+    elementNodeInRenderTree.props?.events[eventKey]?.(evt);
   } else {
-    if (elementNode.children) {
-      if (Array.isArray(elementNode.children)) {
-        elementNode.children.forEach((singleElement) => {
-          traverseAndFindElementByInnerId(singleElement, elementId, eventKey, evt);
+    if (elementNodeInRenderTree.children) {
+      if (Array.isArray(elementNodeInRenderTree.children)) {
+        elementNodeInRenderTree.children.forEach((singleElement) => {
+          findAndInvokeEventHandlerOfElement(singleElement, elementId, eventKey, evt);
         });
       } else {
-        traverseAndFindElementByInnerId(elementNode.children, elementId, eventKey, evt);
+        findAndInvokeEventHandlerOfElement(elementNodeInRenderTree.children, elementId, eventKey, evt);
       }
     }
   }
@@ -110,7 +110,7 @@ function traverseAndFindElementByInnerId(elementNode, elementId, eventKey, evt) 
  */
 export function __handleEvent(elementId, eventKey, evt) {
   const { renderTree } = ReactInnerContext;
-  traverseAndFindElementByInnerId(renderTree, elementId, eventKey, evt);
+  findAndInvokeEventHandlerOfElement(renderTree, elementId, eventKey, evt);
 }
 
 export function __registerRootRenderer(rootRenderer) {
