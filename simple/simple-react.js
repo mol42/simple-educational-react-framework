@@ -3,7 +3,6 @@ const ReactInnerContext = {
   activeId: null,
   stateMap: {},
   hookIdMap: {},
-  rootApp: null,
   virtualDomTree: null,
   processedRenderTree: null,
   reactRootTreeElement: null,
@@ -13,7 +12,10 @@ const ReactInnerContext = {
 export const Fragment = "fragment";
 
 function requestReRender(elementId) {
-  const newVirtualDomTree = createElement(ReactInnerContext.rootApp);
+  const existingDomTree = ReactInnerContext.virtualDomTree;
+  // our framework expects function that creates the
+  // virtual dom tree
+  const newVirtualDomTree = createElement(existingDomTree.type);
   renderVirtualDom(newVirtualDomTree, ReactInnerContext.rootDOMElement, true);
 }
 
@@ -32,6 +34,8 @@ function createOrGetMap(map, activeElementId, defaultValue) {
   return resultArray;
 }
 
+// simple useState hook
+// NOTE: Not the real implementation, educational implementation
 export function useState(initialState) {
   const activeElementId = ReactInnerContext.activeId;
   const [hookIdMapAlreadyCreated, activeHookIdMap] = createOrGetMap(ReactInnerContext.hookIdMap, activeElementId);
@@ -70,11 +74,8 @@ export function createElement(nodeTypeOrFunction, props, ...children) {
   };
 
   if (typeof nodeTypeOrFunction === "function") {
-    if (ReactInnerContext.rootApp === null) {
-      ReactInnerContext.rootApp = nodeTypeOrFunction;
-    }
     // thanks to single thread abilitiy of JS we can create
-    // id values without a problem
+    // id values for the hooks to use
     ReactInnerContext.activeId = treeNode.$$id;
     treeNode.children = nodeTypeOrFunction(props, children);
   } else {
@@ -117,8 +118,9 @@ function renderVirtualDom(virtualDomTree, rootDOMElement, replacePreviousRoot) {
 
 export function createRoot(rootDOMElement) {
   return {
-    render: function (virtualDomTree, replacePreviousRoot) {
-      renderVirtualDom(virtualDomTree, rootDOMElement, replacePreviousRoot);
+    render: function (virtualDomTree) {
+      console.log("virtualDomTree", virtualDomTree);
+      renderVirtualDom(virtualDomTree, rootDOMElement);
     }
   };
 }
