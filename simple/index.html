@@ -25,9 +25,9 @@
     <div id="main_container"></div>
     <script type="module">
       import App from "./App.js";
-      import { renderRoot } from "./simple-react.js";
+      import { createRoot, createElement } from "./simple-react.js";
 
-      renderRoot(() => App(), document.getElementById("main_container"));
+      createRoot(document.getElementById("main_container")).render(createElement(App, null));
     </script>
   </body>
 </html>

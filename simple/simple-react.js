@@ -3,7 +3,8 @@ const ReactInnerContext = {
   activeId: null,
   stateMap: {},
   hookIdMap: {},
-  renderTreeCreator: null,
+  rootApp: null,
+  virtualDomTree: null,
   processedRenderTree: null,
   reactRootTreeElement: null,
   rootDOMElement: null
@@ -12,7 +13,8 @@ const ReactInnerContext = {
 export const Fragment = "fragment";
 
 function requestReRender(elementId) {
-  renderRoot(ReactInnerContext.renderTreeCreator, ReactInnerContext.rootDOMElement, true);
+  const newVirtualDomTree = createElement(ReactInnerContext.rootApp);
+  renderVirtualDom(newVirtualDomTree, ReactInnerContext.rootDOMElement, true);
 }
 
 function createOrGetMap(map, activeElementId, defaultValue) {
@@ -62,17 +64,22 @@ export function createElement(nodeTypeOrFunction, props, ...children) {
   let treeNode = {
     $$id: `element-${ReactInnerContext.elementId++}`,
     type: nodeTypeOrFunction,
-    props: props,
+    props: props || {},
     children: null,
     $$nativeElement: null // will be filled later
   };
 
   if (typeof nodeTypeOrFunction === "function") {
+    if (ReactInnerContext.rootApp === null) {
+      ReactInnerContext.rootApp = nodeTypeOrFunction;
+    }
+    // thanks to single thread abilitiy of JS we can create
+    // id values without a problem
     ReactInnerContext.activeId = treeNode.$$id;
     treeNode.children = nodeTypeOrFunction(props, children);
   } else {
     if (children != null && children.length === 1 && typeof children[0] === "string") {
-      props.__innerHTML = children[0];
+      treeNode.props.__innerHTML = children[0];
     } else {
       treeNode.children = children;
     }
@@ -87,16 +94,15 @@ function removeAllChildNodes(parent) {
   }
 }
 
-export function renderRoot(renderTreeCreator, rootDOMElement, replacePreviousRoot) {
+function renderVirtualDom(virtualDomTree, rootDOMElement, replacePreviousRoot) {
   // internal React variables used for the render phase
   ReactInnerContext.activeId = -1;
   ReactInnerContext.elementId = 0;
   ReactInnerContext.hookIdMap = {};
 
-  const processedRenderTree = renderTreeCreator();
   const reactRootTreeElement = document.createDocumentFragment();
 
-  renderNode(processedRenderTree, reactRootTreeElement);
+  renderNode(virtualDomTree, reactRootTreeElement);
 
   if (replacePreviousRoot) {
     removeAllChildNodes(rootDOMElement);
@@ -105,22 +111,31 @@ export function renderRoot(renderTreeCreator, rootDOMElement, replacePreviousRoo
   rootDOMElement.appendChild(reactRootTreeElement);
 
   ReactInnerContext.reactRootTreeElement = reactRootTreeElement;
-  ReactInnerContext.renderTreeCreator = renderTreeCreator;
-  ReactInnerContext.processedRenderTree = processedRenderTree;
+  ReactInnerContext.virtualDomTree = virtualDomTree;
   ReactInnerContext.rootDOMElement = rootDOMElement;
 }
 
-function findAndInvokeEventHandlerOfElement(elementNodeInRenderTree, elementId, eventKey, evt) {
-  if (elementNodeInRenderTree.$$id === elementId) {
-    elementNodeInRenderTree.props?.events[eventKey]?.(evt);
+export function createRoot(rootDOMElement) {
+  return {
+    render: function (virtualDomTree, replacePreviousRoot) {
+      renderVirtualDom(virtualDomTree, rootDOMElement, replacePreviousRoot);
+    }
+  };
+}
+
+function findAndInvokeEventHandlerOfElement(elementNodeInVirtualDomTree, elementId, eventKey, evt) {
+  const elemNode = elementNodeInVirtualDomTree;
+
+  if (elemNode.$$id === elementId) {
+    elemNode.props?.events[eventKey]?.(evt);
   } else {
-    if (elementNodeInRenderTree.children) {
-      if (Array.isArray(elementNodeInRenderTree.children)) {
-        elementNodeInRenderTree.children.forEach((singleElement) => {
+    if (elemNode.children) {
+      if (Array.isArray(elemNode.children)) {
+        elemNode.children.forEach((singleElement) => {
           findAndInvokeEventHandlerOfElement(singleElement, elementId, eventKey, evt);
         });
       } else {
-        findAndInvokeEventHandlerOfElement(elementNodeInRenderTree.children, elementId, eventKey, evt);
+        findAndInvokeEventHandlerOfElement(elemNode.children, elementId, eventKey, evt);
       }
     }
   }
@@ -153,7 +168,7 @@ function renderNode(node, parentElement) {
 function renderSingleNode(node, parentElement) {
   const activeNode = document.createElement(node.type);
 
-  if (node?.props?.className && typeof node?.props?.className !== "undefined")  {
+  if (node?.props?.className && typeof node?.props?.className !== "undefined") {
     activeNode.className = node?.props?.className;
   }
 
@@ -166,8 +181,8 @@ function renderSingleNode(node, parentElement) {
   if (node.props?.events) {
     Object.keys(node.props?.events).forEach((key) => {
       activeNode.addEventListener(key, function (evt) {
-        const renderTree = ReactInnerContext.processedRenderTree;
-        findAndInvokeEventHandlerOfElement(renderTree, node.$$id, key, evt);
+        const virtualDomTree = ReactInnerContext.virtualDomTree;
+        findAndInvokeEventHandlerOfElement(virtualDomTree, node.$$id, key, evt);
       });
     });
   }
