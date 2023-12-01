@@ -1,12 +1,13 @@
-import { createElement, useState } from "./simple-react.js";
+import { createElement, useState, Fragment } from "./simple-react.js";
 
 function SimplePagedView({ name }) {
+  // 
   const [activePage, setActivePage] = useState(0);
   const [showDate, setShowDate] = useState(false);
 
   if (activePage === 2) {
     return createElement(
-      null, // Fragment node
+      Fragment, // Fragment node
       null,
       createElement("h1", {}, "Page 2"),
       createElement(
@@ -47,14 +48,10 @@ function SimplePagedView({ name }) {
 
   if (activePage === 3) {
     return createElement(
-      null, // Fragment node
+      Fragment, // Fragment node
       null,
       createElement("h1", { className: "" }, "Page 3"),
-      createElement(
-        "div",
-        { className: "info-container" }, 
-        'This is informational content'
-      ),
+      createElement("div", { className: "info-container" }, "This is informational content"),
       createElement(
         "button",
         {
@@ -71,7 +68,7 @@ function SimplePagedView({ name }) {
   }
 
   return createElement(
-    null, // Fragment node
+    Fragment, // Fragment node
     null,
     createElement("h1", { className: "" }, "Page 1"),
     createElement(
