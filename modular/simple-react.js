@@ -1,17 +1,21 @@
 const ReactInnerContext = {
-  renderTree: null, // Virtual DOM like tree
-  renderTreeGenerator: null,
-  rootDOMElement: null,
   elementId: 0,
   activeId: null,
-  requestReRender: null,
   stateMap: {},
-  hookIdMap: {}
+  hookIdMap: {},
+  virtualDomTree: null,
+  reactRootTreeElement: null,
+  rootDOMElement: null
 };
 
+export const Fragment = "fragment";
+
 function requestReRender(elementId) {
-  const { renderTreeGenerator, rootDOMElement,  } = ReactInnerContext;
-  renderRoot(renderTreeGenerator, rootDOMElement, true);
+  const existingDomTree = ReactInnerContext.virtualDomTree;
+  // our framework expects function that creates the
+  // virtual dom tree
+  const newVirtualDomTree = createElement(existingDomTree.type);
+  renderVirtualDom(newVirtualDomTree, ReactInnerContext.rootDOMElement, true);
 }
 
 function createOrGetMap(map, activeElementId) {
@@ -57,49 +61,63 @@ export function useState(initialState) {
   return [activeStateMap[activeHookId], stateUpdater];
 }
 
-export function createElement(typeOrFunction, props, children) {
+export function createElement(nodeTypeOrFunction, props, ...children) {
   let treeNode = {
     $$id: `element-${ReactInnerContext.elementId++}`,
-    type: typeOrFunction,
-    props: props,
+    type: nodeTypeOrFunction,
+    props: props || {},
     children: null,
     $$nativeElement: null // will be filled later
   };
 
-  if (typeof typeOrFunction === "function") {
+  if (typeof nodeTypeOrFunction === "function") {
+    // thanks to single thread abilitiy of JS we can create
+    // id values for the hooks to use
     ReactInnerContext.activeId = treeNode.$$id;
-    treeNode.children = typeOrFunction(props, children);
+    treeNode.children = nodeTypeOrFunction(props, children);
   } else {
-    treeNode.children = children;
+    if (children != null && children.length === 1 && typeof children[0] === "string") {
+      treeNode.props.__innerHTML = children[0];
+    } else {
+      treeNode.children = children;
+    }
   }
 
   return treeNode;
 }
 
-export function renderRoot(renderTreeGenerator, rootDOMElement, replacePreviousRoot) {
+export function renderVirtualDom(virtualDomTree, rootDOMElement, replacePreviousRoot) {
   ReactInnerContext.activeId = -1;
   ReactInnerContext.elementId = 0;
   ReactInnerContext.hookIdMap = {};
 
-  const processedRenderTree = renderTreeGenerator();
-
-  ReactInnerContext.renderTree = processedRenderTree;
-  ReactInnerContext.renderTreeGenerator = renderTreeGenerator;
+  ReactInnerContext.virtualDomTree = virtualDomTree;
   ReactInnerContext.rootDOMElement = rootDOMElement;
-  ReactInnerContext.rootRenderer(processedRenderTree, rootDOMElement, replacePreviousRoot);
+  ReactInnerContext.rootRenderer(virtualDomTree, rootDOMElement, replacePreviousRoot);
 }
 
-function findAndInvokeEventHandlerOfElement(elementNodeInRenderTree, elementId, eventKey, evt) {
-  if (elementNodeInRenderTree.$$id === elementId) {
-    elementNodeInRenderTree.props?.events[eventKey]?.(evt);
+export function createRoot(rootDOMElement) {
+  return {
+    render: function (virtualDomTree) {
+      console.log("virtualDomTree", virtualDomTree);
+      renderVirtualDom(virtualDomTree, rootDOMElement);
+    }
+  };
+}
+
+function findAndInvokeEventHandlerOfElement(elementNodeInVirtualDomTree, elementId, eventKey, evt) {
+  const elemNode = elementNodeInVirtualDomTree;
+
+  if (elemNode.$$id === elementId) {
+    elemNode.props?.events[eventKey]?.(evt);
   } else {
-    if (elementNodeInRenderTree.children) {
-      if (Array.isArray(elementNodeInRenderTree.children)) {
-        elementNodeInRenderTree.children.forEach((singleElement) => {
+    if (elemNode.children) {
+      if (Array.isArray(elemNode.children)) {
+        elemNode.children.forEach((singleElement) => {
           findAndInvokeEventHandlerOfElement(singleElement, elementId, eventKey, evt);
         });
       } else {
-        findAndInvokeEventHandlerOfElement(elementNodeInRenderTree.children, elementId, eventKey, evt);
+        findAndInvokeEventHandlerOfElement(elemNode.children, elementId, eventKey, evt);
       }
     }
   }
@@ -108,9 +126,10 @@ function findAndInvokeEventHandlerOfElement(elementNodeInRenderTree, elementId, 
 /**
  * BELOW 2 METHODS ARE USED FOR GLOBAL PURPOSES
  */
-export function __handleEvent(elementId, eventKey, evt) {
-  const { renderTree } = ReactInnerContext;
-  findAndInvokeEventHandlerOfElement(renderTree, elementId, eventKey, evt);
+
+export function __informNativeEvent(elementId, eventKey, evt) {
+  const { virtualDomTree } = ReactInnerContext;
+  findAndInvokeEventHandlerOfElement(virtualDomTree, elementId, eventKey, evt);
 }
 
 export function __registerRootRenderer(rootRenderer) {

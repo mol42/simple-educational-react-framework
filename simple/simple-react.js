@@ -4,7 +4,6 @@ const ReactInnerContext = {
   stateMap: {},
   hookIdMap: {},
   virtualDomTree: null,
-  processedRenderTree: null,
   reactRootTreeElement: null,
   rootDOMElement: null
 };

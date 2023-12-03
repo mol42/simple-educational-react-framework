@@ -1,7 +1,6 @@
-import { __registerRootRenderer, __handleEvent } from "./simple-react.js";
+import { __registerRootRenderer, __informNativeEvent, Fragment } from "./simple-react.js";
 
 const ReactRenderContext = {
-  processedRenderTree: null,
   reactRootTreeElement: null,
   rootDOMElement: null
 };
@@ -33,9 +32,16 @@ function renderNode(node, parentElement) {
     return;
   }
 
-  if (Array.isArray(node)) {
+  if (node.type === Fragment) {
+    // we skip Fragment
+    renderNode(node.children, parentElement);
+  } else if (Array.isArray(node)) {
     node.forEach((singleNode) => {
-      renderSingleNode(singleNode, parentElement);
+      if (typeof singleNode.type !== "function") {
+        renderSingleNode(singleNode, parentElement);
+      } else {
+        renderNode(singleNode.children, parentElement);
+      }
     });
   } else if (typeof node.type !== "function") {
     renderSingleNode(node, parentElement);
@@ -46,7 +52,10 @@ function renderNode(node, parentElement) {
 
 function renderSingleNode(node, parentElement) {
   const activeNode = document.createElement(node.type);
-  activeNode.className = node?.props?.className;
+
+  if (node?.props?.className && typeof node?.props?.className !== "undefined") {
+    activeNode.className = node?.props?.className;
+  }
 
   if (node.props?.__innerHTML) {
     activeNode.innerHTML = node.props?.__innerHTML;
@@ -57,7 +66,7 @@ function renderSingleNode(node, parentElement) {
   if (node.props?.events) {
     Object.keys(node.props?.events).forEach((key) => {
       activeNode.addEventListener(key, function (evt) {
-        __handleEvent(node.$$id, key, evt);
+        __informNativeEvent(node.$$id, key, evt);
       });
     });
   }
