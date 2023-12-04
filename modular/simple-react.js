@@ -41,9 +41,10 @@ function createOrGetMap(map, activeElementId) {
 
 export function useState(initialState) {
   const { $$id, $$parentId } = ReactInnerContext.activeStateParent;
+  const { hookIdMap, stateMap } = ReactInnerContext;
   const activeStateId = $$parentId || "NULL";
-  const [hookIdMapAlreadyCreated, activeHookIdMap] = createOrGetMap(ReactInnerContext.hookIdMap, activeStateId);
-  const [activeStateMapAlreadyCreated, activeStateMap] = createOrGetMap(ReactInnerContext.stateMap, activeStateId);
+  const [hookIdMapAlreadyCreated, activeHookIdMap] = createOrGetMap(hookIdMap, activeStateId);
+  const [activeStateMapAlreadyCreated, activeStateMap] = createOrGetMap(stateMap, activeStateId);
 
   if (!hookIdMapAlreadyCreated) {
     activeHookIdMap["id"] = 0;
