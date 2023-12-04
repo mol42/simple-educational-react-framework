@@ -3,14 +3,22 @@ const ReactInnerContext = {
   activeId: null,
   stateMap: {},
   hookIdMap: {},
+  activeStateContext: null,
   virtualDomTree: null,
   reactRootTreeElement: null,
   rootDOMElement: null
 };
 
+function resetReactContext() {
+  ReactInnerContext.elementId = 0;
+  ReactInnerContext.hookIdMap = {};
+  ReactInnerContext.activeStateContext = null;
+}
+
 export const Fragment = "fragment";
 
 function requestReRender(elementId) {
+  resetReactContext();
   const existingDomTree = ReactInnerContext.virtualDomTree;
   // our framework expects function that creates the
   // virtual dom tree
@@ -36,16 +44,19 @@ function createOrGetMap(map, activeElementId, defaultValue) {
 // simple useState hook
 // NOTE: Not the real implementation, educational implementation
 export function useState(initialState) {
-  const activeElementId = ReactInnerContext.activeId;
-  const [hookIdMapAlreadyCreated, activeHookIdMap] = createOrGetMap(ReactInnerContext.hookIdMap, activeElementId);
-  const [activeStateMapAlreadyCreated, activeStateMap] = createOrGetMap(ReactInnerContext.stateMap, activeElementId);
+  const { $$id, $$parentId } = ReactInnerContext.activeStateContext;
+  const { hookIdMap, stateMap } = ReactInnerContext;
+  const activeStateId = $$parentId || "NULL";
+  const [hookIdMapAlreadyCreated, activeHookIdMap] = createOrGetMap(hookIdMap, activeStateId);
+  const [activeStateMapAlreadyCreated, activeStateMap] = createOrGetMap(stateMap, activeStateId);
 
   if (!hookIdMapAlreadyCreated) {
-    activeHookIdMap[activeElementId] = 0;
+    activeHookIdMap["id"] = 0;
   }
-  const activeHookId = activeHookIdMap[activeElementId]++;
 
-  if (!activeStateMapAlreadyCreated) {
+  const activeHookId = activeHookIdMap["id"]++;
+
+  if (!activeStateMapAlreadyCreated && !hookIdMapAlreadyCreated) {
     activeStateMap[activeHookId] = initialState;
   } else {
     if (typeof activeStateMap[activeHookId] === "undefined") {
@@ -55,9 +66,10 @@ export function useState(initialState) {
 
   const stateUpdater = function (newState) {
     activeStateMap[activeHookId] = newState;
+    requestReRender(activeStateId);
     setTimeout(function () {
-      requestReRender(activeElementId);
-    }, 50);
+      requestReRender($$parentId, $$id);
+    }, 20);
   };
 
   return [activeStateMap[activeHookId], stateUpdater];
@@ -66,6 +78,7 @@ export function useState(initialState) {
 export function createElement(nodeTypeOrFunction, props, ...children) {
   let treeNode = {
     $$id: `element-${ReactInnerContext.elementId++}`,
+    $$parentId: null,
     type: nodeTypeOrFunction,
     props: props || {},
     children: null,
@@ -75,13 +88,17 @@ export function createElement(nodeTypeOrFunction, props, ...children) {
   if (typeof nodeTypeOrFunction === "function") {
     // thanks to single thread abilitiy of JS we can create
     // id values for the hooks to use
-    ReactInnerContext.activeId = treeNode.$$id;
-    treeNode.children = nodeTypeOrFunction(props, children);
+    ReactInnerContext.activeStateContext = treeNode;
+    treeNode.children = [nodeTypeOrFunction(props, children)];
+    applyParentToChildren(treeNode.children, treeNode.$$id);
   } else {
     if (children != null && children.length === 1 && typeof children[0] === "string") {
       treeNode.props.__innerHTML = children[0];
     } else {
-      treeNode.children = children;
+      if (children != null && children.length > 0) {
+        treeNode.children = children;
+        applyParentToChildren(treeNode.children, treeNode.$$id);
+      }
     }
   }
 
@@ -91,6 +108,16 @@ export function createElement(nodeTypeOrFunction, props, ...children) {
 function removeAllChildNodes(parent) {
   while (parent.firstChild) {
     parent.removeChild(parent.firstChild);
+  }
+}
+
+function applyParentToChildren(children, parentId) {
+  if (children != null && children.length > 0) {
+    children.forEach((child) => {
+      if (child != null) {
+        child.$$parentId = parentId;
+      }
+    });
   }
 }
 
@@ -118,7 +145,7 @@ function renderVirtualDom(virtualDomTree, rootDOMElement, replacePreviousRoot) {
 export function createRoot(rootDOMElement) {
   return {
     render: function (virtualDomTree) {
-      console.log("virtualDomTree", virtualDomTree);
+      resetReactContext();
       renderVirtualDom(virtualDomTree, rootDOMElement);
     }
   };

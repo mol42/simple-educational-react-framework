@@ -3,8 +3,8 @@ const ReactInnerContext = {
   activeId: null,
   stateMap: {},
   hookIdMap: {},
-  activeTreeNode: null,
-  virtualDomTree: null
+  virtualDomTree: null,
+  activeStateContext: null
 };
 
 export const Fragment = "fragment";
@@ -12,7 +12,7 @@ export const Fragment = "fragment";
 function resetReactContext() {
   ReactInnerContext.elementId = 0;
   ReactInnerContext.hookIdMap = {};
-  ReactInnerContext.activeStateParent = null;
+  ReactInnerContext.activeStateContext = null;
 }
 
 function requestReRender(elementId) {
@@ -40,7 +40,7 @@ function createOrGetMap(map, activeElementId) {
 }
 
 export function useState(initialState) {
-  const { $$id, $$parentId } = ReactInnerContext.activeStateParent;
+  const { $$id, $$parentId } = ReactInnerContext.activeStateContext;
   const { hookIdMap, stateMap } = ReactInnerContext;
   const activeStateId = $$parentId || "NULL";
   const [hookIdMapAlreadyCreated, activeHookIdMap] = createOrGetMap(hookIdMap, activeStateId);
@@ -83,8 +83,10 @@ export function createElement(nodeTypeOrFunction, props, ...children) {
 
   if (typeof nodeTypeOrFunction === "function") {
     // thanks to single thread abilitiy of JS we can create
-    // id values for the hooks to use
-    ReactInnerContext.activeStateParent = treeNode;
+    // id values for the hooks to use by accessing the global 
+    // ReactInnerContext.activeStateContext in useState or any
+    // other built-in hook
+    ReactInnerContext.activeStateContext = treeNode;
     treeNode.children = [nodeTypeOrFunction(props, children)];
     applyParentToChildren(treeNode.children, treeNode.$$id);
   } else {
