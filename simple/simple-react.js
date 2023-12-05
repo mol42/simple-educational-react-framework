@@ -44,6 +44,12 @@ function createOrGetMap(map, activeElementId, defaultValue) {
 // simple useState hook
 // NOTE: Not the real implementation, educational implementation
 export function useState(initialState) {
+  // Since JS is single thread we have the ability to reach a global object
+  // safely while createElement is executing a React component function.
+  // useState and other hooks are only meant to be used inside the
+  // component functions so accessing the ReactInnerContext.activeStateContext
+  // enables us to create id values for each hook function and help on
+  // their data management
   const { $$id, $$parentId } = ReactInnerContext.activeStateContext;
   const { hookIdMap, stateMap } = ReactInnerContext;
   const activeStateId = $$parentId || "NULL";
