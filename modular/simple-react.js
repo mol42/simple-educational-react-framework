@@ -159,13 +159,16 @@ function findAndInvokeEventHandlerOfElement(elementNodeInVirtualDomTree, element
 }
 
 /**
- * BELOW 2 METHODS ARE USED FOR GLOBAL PURPOSES
+ * BELOW 2 METHODS ARE USED FOR COMBINING TWO REALMS
  */
+
+// This method is used by the renderer system to inform React side for an event
 export function __informNativeEvent(elementId, eventKey, evt) {
   const { virtualDomTree } = ReactInnerContext;
   findAndInvokeEventHandlerOfElement(virtualDomTree, elementId, eventKey, evt);
 }
 
+// This method is used for registering the renderer function
 export function __registerRootRenderer(rootRenderer) {
   ReactInnerContext.rootRenderer = rootRenderer;
 }

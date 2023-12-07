@@ -5,6 +5,7 @@ export default function App() {
   return createElement(
     "div",
     { className: "padding-20" },
+    createElement("div", { className : "padding-20", __innerHTML: "Monolithic React" }),
     createElement(SimplePagedView, { name: "Tayfun" })
   );
 }

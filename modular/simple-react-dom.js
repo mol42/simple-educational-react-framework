@@ -11,10 +11,10 @@ function removeAllChildNodes(parent) {
   }
 }
 
-function doRenderRoot(renderTree, rootDOMElement, replacePreviousRoot) {
+function doRenderRoot(virtualDomTree, rootDOMElement, replacePreviousRoot) {
   const reactRootTreeElement = document.createDocumentFragment();
 
-  renderNode(renderTree, reactRootTreeElement);
+  renderNode(virtualDomTree, reactRootTreeElement);
 
   if (replacePreviousRoot) {
     removeAllChildNodes(rootDOMElement);

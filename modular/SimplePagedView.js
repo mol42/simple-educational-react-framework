@@ -1,7 +1,6 @@
 import { createElement, useState, Fragment } from "./simple-react.js";
 
 function SimplePagedView({ name }) {
-  // 
   const [activePage, setActivePage] = useState(0);
   const [showDate, setShowDate] = useState(false);
 
