@@ -15,12 +15,12 @@ function resetReactContext() {
   ReactInnerContext.activeStateContext = null;
 }
 
-function requestReRender(elementId) {
+function requestReRender(parentId, elementId) {
   resetReactContext();
   const existingDomTree = ReactInnerContext.virtualDomTree;
   // our framework expects function that creates the
   // virtual dom tree
-  const newVirtualDomTree = createElement(existingDomTree.type);
+  const newVirtualDomTree = createElement(existingDomTree.type, existingDomTree.props, existingDomTree.children);
   renderVirtualDom(newVirtualDomTree, ReactInnerContext.rootDOMElement, true);
 }
 
@@ -70,10 +70,7 @@ export function useState(initialState) {
 
   const stateUpdater = function (newState) {
     activeStateMap[activeHookId] = newState;
-    requestReRender(activeStateId);
-    setTimeout(function () {
-      requestReRender($$parentId, $$id);
-    }, 20);
+    requestReRender($$parentId, $$id);
   };
 
   return [activeStateMap[activeHookId], stateUpdater];
@@ -91,7 +88,7 @@ export function createElement(nodeTypeOrFunction, props, ...children) {
 
   if (typeof nodeTypeOrFunction === "function") {
     // thanks to single thread abilitiy of JS we can create
-    // id values for the hooks to use by accessing the global 
+    // id values for the hooks to use by accessing the global
     // ReactInnerContext.activeStateContext in useState or any
     // other built-in hook
     ReactInnerContext.activeStateContext = treeNode;
