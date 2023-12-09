@@ -22,7 +22,8 @@ function requestReRender(elementId) {
   const existingDomTree = ReactInnerContext.virtualDomTree;
   // our framework expects function that creates the
   // virtual dom tree
-  const newVirtualDomTree = createElement(existingDomTree.type);
+  const { type, props, children } = existingDomTree;
+  const newVirtualDomTree = createElement(type, props, children);
   renderVirtualDom(newVirtualDomTree, ReactInnerContext.rootDOMElement, true);
 }
 
