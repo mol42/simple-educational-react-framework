@@ -14,7 +14,7 @@ For all other platforms, here is a list for server one-liners
 https://gist.github.com/willurd/5720255
 
 
-**=== TURKCE ACIKLAMA ====**
+**========= TURKCE ACIKLAMA ==========**
 
 Simple Educational React Framework Projesi
 
